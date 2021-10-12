@@ -1,0 +1,302 @@
+/*
+ *  Dinosaur Game for Arudino
+ *  created by The Sweeping Developer
+ * 
+ *  Based on Google's Dinosaur Game by Sebastian Gabriel in 2014
+ *   
+ *  Hardware based on Elegoo Super Starter Kit LCD Display
+ *  with the following additions:
+ *
+ *  * Add a push switch to act as a button, connect one end to 
+ *    ground, and the other to pin 13 on the Arduino.
+ *
+ *
+ */
+
+// include the library
+#include <LiquidCrystal.h>
+
+
+int jumpTimer = 0;
+int jumpFlag = 0;
+int dinoPosition = 0;
+int buttonPin = 13;
+
+int dinoAnimation = 0;
+int cloudPos = 14;
+int cloudDelay = 4;
+
+int score = 0;
+int gameOverDelay = 0;
+
+int cactusPos[3] = {-2,-2,-2};
+int cactusChance[3] = {0,0,0};
+
+
+// initialze library
+LiquidCrystal lcd(7,8,9,10,11,12);
+
+// dinosaur
+byte dino1[8] = 
+{
+  0b00110,
+  0b00111,
+  0b00111,
+  0b10110,
+  0b10111,
+  0b11110,
+  0b01010,
+  0b00010
+};
+
+byte dino2[8] = 
+{
+  0b00110,
+  0b00111,
+  0b00111,
+  0b10110,
+  0b10111,
+  0b11110,
+  0b01010,
+  0b01000
+};
+
+
+// cacti
+byte cactus1[8] = 
+{
+  0b00000,
+  0b00100,
+  0b10101,
+  0b10101,
+  0b01110,
+  0b00100,
+  0b00100,
+  0b00100
+};
+ 
+byte cactus2[8] = 
+{
+  0b00000,
+  0b00100,
+  0b10101,
+  0b10101,
+  0b10110,
+  0b10100,
+  0b01100,
+  0b00100
+};
+
+byte cactus3[8] = 
+{
+  0b00000,
+  0b00100,
+  0b10101,
+  0b10101,
+  0b01101,
+  0b00101,
+  0b00110,
+  0b00100
+};
+
+// cloud
+byte cloud1[8] = 
+{
+  0b00000,
+  0b00010,
+  0b00000,
+  0b00100,
+  0b00000,
+  0b10000,
+  0b10101,
+  0b00000
+};
+
+byte cloud2[8] = 
+{
+  0b00000,
+  0b00000,
+  0b10000,
+  0b00100,
+  0b00000,
+  0b00001,
+  0b01010,
+  0b00000
+};
+
+
+void setup() {
+  // put your setup code here, to run once:
+
+  lcd.begin(16,2);
+
+  lcd.createChar(0,dino1);
+  lcd.createChar(1,dino2);
+  lcd.createChar(2,cactus1);
+  lcd.createChar(3,cactus2);
+  lcd.createChar(4,cactus3);
+  lcd.createChar(5,cloud1);
+  lcd.createChar(6,cloud2);
+
+
+  pinMode(buttonPin, INPUT_PULLUP);
+  
+  
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+ 
+  
+  if (digitalRead(buttonPin) == LOW && jumpTimer == 0)  //Button Pushed
+  {
+    jumpTimer = 10;
+    //jumpFlag = 1;
+    dinoPosition = 1;
+  }
+
+  if (jumpTimer < 2)
+  {
+    dinoPosition = 0;
+  }
+
+  if (jumpTimer > 0)
+  {
+    jumpTimer -= 1;
+  }
+
+  //Draw Cloud.
+  if (cloudPos > -1)
+  {
+    lcd.setCursor(cloudPos,0);
+    lcd.write(byte(5));
+  }
+  if (cloudPos > -2 && cloudPos < 15)
+  {
+    lcd.setCursor(cloudPos + 1,0);
+    lcd.write(byte(6));
+  }
+  if (cloudPos > -3 && cloudPos < 14)
+  { 
+    lcd.setCursor(cloudPos + 2,0);
+    lcd.print(" ");
+  }
+  
+  //Draw Cacti.
+  for (int a = 0; a < 3; a++)
+  {
+    if (cactusPos[a] > -1)
+    {
+      lcd.setCursor(cactusPos[a], 1);
+
+      lcd.write(byte(2+a));  
+      if (cactusPos[a] < 15) { lcd.setCursor(cactusPos[a] + 1,1); lcd.print(" "); }
+    }
+
+  }
+
+
+  //Draw Dino.
+  if (dinoPosition == 0)
+  {
+    lcd.setCursor(2,0);
+    lcd.print(" ");
+    lcd.setCursor(2,1);
+    lcd.write(byte(dinoAnimation));
+  }
+  else
+  {
+    lcd.setCursor(2,1);
+    lcd.print(" ");
+    lcd.setCursor(2,0);
+    lcd.write(byte(dinoAnimation));
+    
+  }
+
+
+  //Draw Score.
+  lcd.setCursor(11,0);
+  lcd.print(score);
+
+  delay(100);
+
+  if (gameOverDelay == 1)
+  {
+    lcd.setCursor(0,0);
+    lcd.print("                ");
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    score = 0;
+  }
+
+  if (gameOverDelay == 0)
+  {
+    //Move Dino's feet.
+    dinoAnimation = 1-dinoAnimation;
+  
+    //Move Cloud.
+    cloudDelay -= 1;
+    if (cloudDelay == -1)
+    {
+      cloudDelay = 4;
+      cloudPos -= 1;
+  
+      if (cloudPos < -3)
+      {
+        cloudPos = 15;
+      }
+      
+    }
+  
+    //Move Cacti.
+    if (cloudDelay % 2 == 0)
+    {
+      score += 1;
+      for (int a = 0; a < 3; a++)
+      {
+        if (cactusPos[a] > -2)
+        {
+          cactusPos[a] -= 1;
+        }
+        if (cactusPos[a] == -1)
+        {
+          lcd.setCursor(0,1);
+          lcd.print(" ");
+        }
+      }
+      //Release On Deck Cacti.
+      for (int a = 0; a < 3; a++)
+      {
+        cactusChance[a] = random(10);
+        if (cactusChance[a] == 9 && cactusPos[a] == -2)
+        {
+          cactusPos[a] = 15;
+        }
+      }
+    }
+  
+    //Check for Colissions.
+    for (int a = 0; a < 3; a++)
+    {
+      if (cactusPos[a] == 2 && dinoPosition == 0)
+      {
+        gameOverDelay = 25;
+      }
+    }
+    if (gameOverDelay > 0)
+    {
+      cactusPos[0] = -2;
+      cactusPos[1] = -2;
+      cactusPos[2] = -2;  
+    }
+    
+  }
+  else
+  {
+    gameOverDelay -= 1;
+  }
+  
+  
+} 
